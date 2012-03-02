@@ -451,6 +451,11 @@
         unset($view['description']);
       }
 
+      # don't show fixed
+      if ($view['resolution'] == 'Fixed') {
+        unset($view['resolution']);
+      }
+
       # templates using mustache
       $home_template = $this->_home('issue');
       $template = file_exists($home_template)
