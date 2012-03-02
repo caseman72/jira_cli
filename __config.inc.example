@@ -1,18 +1,15 @@
 <?
-  ## Mustache link
-  #  git://github.com/bobthecow/mustache.php.git
-  #
-  define('JIRA_HOST', 'http://jira.mypvpower.com');
+  define('JIRA_HOST', 'http://jira.example.com');
   define('USER_AGENT', 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)');
 
   define('JIRA_USER', '<user>');        # replace <user> with your username example 'cmanion'
   define('JIRA_AUTH', 'Authorization: Basic <base64_endcode>');  # php -r 'print base64_endcode("user:password") . "\n"';
 
-  define('JIRA_DEFAULT', '10004');      # default id for project for jira new
+  define('JIRA_DEFAULT', '10001');      # default id for project for jira new
 
   define('JIRA_LIST', '<list>');        # your id for list -> saved searches
   define('JIRA_LISTALL', '<listall>');  # your id for listall -> saved searches
+  define('JIRA_TRIAGE', '<triage>');    # your id for triage -> saved searches
 
   date_default_timezone_set('America/Los_Angeles');
-
 
