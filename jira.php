@@ -70,6 +70,7 @@
 
     private function _wgetit($url, $post=false, $json=false)
     {
+      $url = $this->_jira_host . $url;
       $post = $post ? "--post-data " . escapeshellarg($post) : '';
       $json = $json ? '--header="Content-Type: application/json"' : '';
       $data = `wget -q --header='{$this->_auth_basic}' --header='X-Atlassian-Token: no-check' {$json} --user-agent='{$this->_user_agent}' {$post} '{$url}' -O -`;
@@ -80,7 +81,7 @@
     private function _getparams($html, $concatVersion = false)
     {
       if (preg_match("/^\w+[-][0-9]+$/", $html)) {
-        $html = $this->_wgetit('http://jira.mypvpower.com/browse/' . strtoupper($html));
+        $html = $this->_wgetit('/browse/' . strtoupper($html));
       }
 
       $search = array(
@@ -153,7 +154,7 @@
         , "$1\t$2"
       );
 
-      $html = $this->_wgetit('http://jira.mypvpower.com/secure/admin/user/UserBrowser.jspa', 'max=50');
+      $html = $this->_wgetit('/secure/admin/user/UserBrowser.jspa', 'max=50');
       $html = trim(preg_replace($search, $replace, $html));
 
       $users = array();
@@ -202,7 +203,7 @@
         , ''
       );
 
-      $html = $this->_wgetit($this->_jira_host . '/secure/BrowseProjects.jspa#all');
+      $html = $this->_wgetit('/secure/BrowseProjects.jspa#all');
       $html = trim(preg_replace($search, $replace, $html));
 
       $projectIds = array();
@@ -256,8 +257,8 @@
       );
 
       $html = $jqlQuery
-            ? $this->_wgetit($this->_jira_host . "/sr/jira.issueviews:searchrequest-printable/temp/SearchRequest.html?jqlQuery={$jqlQuery}&tempMax=60")
-            : $this->_wgetit($this->_jira_host . "/sr/jira.issueviews:searchrequest-printable/{$id}/SearchRequest-{$id}.html?tempMax=60");
+            ? $this->_wgetit("/sr/jira.issueviews:searchrequest-printable/temp/SearchRequest.html?jqlQuery={$jqlQuery}&tempMax=60")
+            : $this->_wgetit("/sr/jira.issueviews:searchrequest-printable/{$id}/SearchRequest-{$id}.html?tempMax=60");
 
       $html = trim(preg_replace($search, $replace, $html));
 
@@ -313,7 +314,7 @@
     {
       $project = strtoupper($project);
 
-      $json = $this->_wgetit($this->_jira_host . "/rest/api/2.0.alpha1/project/{$project}/versions/", false, true);
+      $json = $this->_wgetit("/rest/api/2.0.alpha1/project/{$project}/versions/", false, true);
       $json = is_array($json) ? $json : array();
 
       $versions = array();
@@ -332,7 +333,7 @@
 
 
     function _projects() {
-      $json = $this->_wgetit($this->_jira_host . "/rest/api/2.0.alpha1/project/", false, true);
+      $json = $this->_wgetit("/rest/api/2.0.alpha1/project/", false, true);
       $json = is_array($json) ? $json : array();
 
       $projects = array();
@@ -352,7 +353,7 @@
 
     function f_issue($issue, $color=true)
     {
-      $json = $this->_wgetit($this->_jira_host . '/rest/api/2.0.alpha1/issue/' . $issue, false, true);
+      $json = $this->_wgetit('/rest/api/2.0.alpha1/issue/' . $issue, false, true);
       $json = $json->fields;
 
       # api doesn't redirect like html - so try url for new issue (and pray!)
@@ -472,7 +473,7 @@
       if ($action == 'Resolve')
       {
         $params .= "&resolution=1&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/CommentAssignIssue.jspa', $params);
+        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -484,7 +485,7 @@
       if ($action == 'Resolve')
       {
         $params .= "&resolution=2&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/CommentAssignIssue.jspa', $params);
+        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -496,7 +497,7 @@
       if ($action == 'Resolve')
       {
         $params .= "&resolution=7&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/CommentAssignIssue.jspa', $params);
+        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -508,7 +509,7 @@
       if ($action == 'Resolve')
       {
         $params .= "&resolution=8&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/CommentAssignIssue.jspa', $params);
+        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -521,7 +522,7 @@
       {
         $params = preg_replace("/([?&]action)=[0-9]+/", "$1=3", $params);
         $params .= "&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/CommentAssignIssue.jspa', $params);
+        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -536,7 +537,7 @@
         if ($action)
         {
           $params .= "&commentId={$commentId}";
-          $this->_wgetit('http://jira.mypvpower.com/secure/DeleteComment.jspa', $params);
+          $this->_wgetit('/secure/DeleteComment.jspa', $params);
         }
       }
       return $this->f_issue($issue);
@@ -548,7 +549,7 @@
       if ($action)
       {
         $params .= "&comment={$comment}&commentLevel=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/AddComment.jspa', $params);
+        $this->_wgetit('/secure/AddComment.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -562,7 +563,7 @@
         $user = urlencode($user); # TODO # verify
 
         $params .= "&assignee={$user}&comment=&commentLevel=";
-        $this->_wgetit('http://jira.mypvpower.com/secure/AssignIssue.jspa', $params);
+        $this->_wgetit('/secure/AssignIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -577,7 +578,7 @@
         $params .= '&priority='. urlencode($value);
 
         // good start but doesn't work...
-        $this->_wgetit('http://jira.mypvpower.com/secure/EditIssue.jspa', $params);
+        $this->_wgetit('/secure/EditIssue.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -589,7 +590,7 @@
       if ($action == 'Resolve')
       {
         $params = preg_replace("/([?&]action)=[0-9]+/", "$1=4", $params);
-        $this->_wgetit('http://jira.mypvpower.com/secure/WorkflowUIDispatcher.jspa', $params);
+        $this->_wgetit('/secure/WorkflowUIDispatcher.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -601,7 +602,7 @@
       if ($action == 'Resolve')
       {
         $params = preg_replace("/([?&]action)=[0-9]+/", "$1=301", $params);
-        $this->_wgetit('http://jira.mypvpower.com/secure/WorkflowUIDispatcher.jspa', $params);
+        $this->_wgetit('/secure/WorkflowUIDispatcher.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -646,7 +647,7 @@
               . '&pid='        . $pid
               . '&issuetype='  . '1';  // bug
 
-      $html = $this->_wgetit('http://jira.mypvpower.com/secure/CreateIssueDetails.jspa', $params);
+      $html = $this->_wgetit('/secure/CreateIssueDetails.jspa', $params);
       list($action, $params, $issue) = $this->_getparams($html, true);
 
       return $this->f_issue($issue);
