@@ -1,16 +1,23 @@
-#  Mustache repo
-#    git://github.com/bobthecow/mustache.php.git
-#
+Mustache repo
+  git://github.com/bobthecow/mustache.php.git
 
-#  MACOS php with pnctl_fork
-#    http://php-osx.liip.ch/
-#
-#    curl -s http://php-osx.liip.ch/install.sh | bash -s 5.3
-#
-#    Need to update php.ini - to something like this:
-#      short_open_tag = On
-#      error_reporting = E_ALL & ~E_NOTICE
-#      display_errors = Off
-#      display_startup_errors = Off
-#      log_errors = Off
+Windows with cygwin
+  Install PHP:
+    http://sourceware.org/cygwinports/
+
+  Install psexec:
+    http://technet.microsoft.com/en-us/sysinternals/bb897553
+      1. download
+      2. open zip
+      3. copy PsExec.exe to /bin/
+      4. rename PsExec.exe to psexec2.exe to psexec.exe
+
+  Create /vim.bat:
+    @echo off
+    FOR /F "TOKENS=*" %%A IN ('C:\cygwin\bin\cygpath.exe -m "%~f1"') DO SET FN=%%A
+
+    C:
+    chdir C:\cygwin\bin
+    
+    bash --login -i -c "mintty -i /Cygwin-Terminal.ico -e vim \"+set nowrap\" \"+set lbr\" \"%FN%\""
 
