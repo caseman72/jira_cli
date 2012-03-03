@@ -3,7 +3,7 @@
   define('USER_AGENT', 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)');
 
   define('JIRA_USER', '<user>');        # replace <user> with your username example 'cmanion'
-  define('JIRA_AUTH', 'Authorization: Basic <base64_endcode>');  # php -r 'print base64_endcode("user:password") . "\n"';
+  define('JIRA_AUTH', 'Authorization: Basic <base64_encode>');  # php -r 'print base64_encode("user:password") . "\n"';
 
   define('JIRA_DEFAULT', '10001');      # default id for project for jira new
 
