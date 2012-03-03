@@ -1,8 +1,7 @@
 #!/usr/bin/php
 <?
+  # includes with full path
   $cwd = dirname(__FILE__);
-
-  # user / pwd
   require_once("{$cwd}/__config.inc");
   require_once("{$cwd}/Mustache.php");
 
@@ -20,12 +19,12 @@
     private function _tz_server() { return new DateTimeZone('GMT'); }
     private function _tz_local() { return new DateTimeZone(date_default_timezone_get()); }
 
-    # path to local template
+    # full-path to local template
     private function _local($template) {
       return rtrim(dirname(__FILE__), '\/') . "/templates/{$template}.mustache";
     }
 
-    # path to home template
+    # full-path to home template
     private function _home($template) {
       return rtrim(getenv('HOME'), '\/') . "/.jira/templates/{$template}.mustache";
     }
@@ -43,7 +42,7 @@
       , 'RESET'   => "\033[39m"
     );
 
-    # common search & replace
+    # common search & replace - mainly for comments
     private $_search = array(
       "/[\r\n]+[ \t]*/"
       , "/[ \t]+/"
@@ -749,8 +748,40 @@ EOS;
             // run issue details (no color) into file
             system(__FILE__ . " issue {$issue} 0 | sed 's/^/#- /;s/[ ]*$//' >> {$tmpfile}");
 
-            // launch and wait
-            system("psexec C:\\\\cygwin\\\\vim.bat /cygwin{$tmpfile} >& /dev/null");
+            if (getenv('OSTYPE') == 'cygwin')
+            {
+              // launch and wait
+              system("psexec C:\\\\cygwin\\\\vim.bat /cygwin{$tmpfile} >& /dev/null");
+            }
+            else
+            {
+              $pid = pcntl_fork();
+              if ($pid == -1)
+              {
+                die("Exiting - could not fork\n");
+              }
+              elseif ($pid)
+              {
+                // we are the parent
+                pcntl_wait($status);
+
+                // done with vim ...
+                $comment = preg_replace("/[ ]+$/m", '', `grep -v '^#-' $tmpfile`);
+                $comment = urlencode(preg_replace($search, $replace, $comment));
+
+                if (!$comment) {
+                  die("Exiting - no comment!\n");
+                }
+
+                return $this->{$command}($issue, $comment);
+              }
+              else
+              {
+                // we are the child exit when done...
+                system("/usr/bin/vim $tmpfile > `tty`");
+                exit;
+              }
+            }
 
             // done with vim ...
             $comment = trim(preg_replace("/[ ]+$/m", '', `grep -v '^#-' $tmpfile`));
