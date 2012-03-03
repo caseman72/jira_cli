@@ -7,12 +7,9 @@ MACOS php with pnctl_fork
 
   curl -s http://php-osx.liip.ch/install.sh | bash -s 5.3
 
-  Need to update php.ini - to something like this:
-    short_open_tag = On
-    error_reporting = E_ALL & ~E_NOTICE
-    display_errors = Off
-    display_startup_errors = Off
-    log_errors = Off
+
+PHP
+  No need to update php.ini as I fixed code to work with default php.ini file (or any ini)...
 
 
 Windows with cygwin

@@ -1,5 +1,5 @@
 #!/usr/bin/php
-<?
+<?php
   # includes with full path
   $cwd = dirname(__FILE__);
   require_once("{$cwd}/__config.inc");
