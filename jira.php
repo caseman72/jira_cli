@@ -14,6 +14,7 @@
     private $_jira_host = JIRA_HOST;
     private $_jira_list = JIRA_LIST;
     private $_jira_list_all = JIRA_LISTALL;
+    private $_jira_phoenix = JIRA_PHOENIX;
     private $_jira_triage = JIRA_TRIAGE;
 
     private function _tz_server() { return new DateTimeZone('GMT'); }
@@ -324,6 +325,10 @@
     {
       print $this->_columns($this->_list($this->_jira_list_all), $color);
     }
+    function f_phoenix($color=true)
+    {
+      print $this->_columns($this->_list($this->_jira_phoenix));
+    }
     function f_triage($color=true)
     {
       print $this->_columns($this->_list($this->_jira_triage), $color);
@@ -377,7 +382,7 @@
     }
 
 
-    function f_issue($issue, $color=true)
+    function f_issue($issue, $color=true, $wrap=80)
     {
       $json = $this->_wgetit('/rest/api/2.0.alpha1/issue/' . $issue, false, true);
       $json = $json->fields;
@@ -410,7 +415,7 @@
 
       $view = array(
         'issue' => $issue
-        , 'wrap' => 74
+        , 'wrap' => $wrap
       );
       foreach($this->_colors as $key => $val) {
         $view[$key] = $color ? $val : '';
@@ -492,6 +497,9 @@
       $m = new Mustache();
       print $m->render($template, $view);
     }
+    function f_raw($issue) {
+      return $this->f_issue($issue, false, 1024);
+    }
 
     function f_fix($issue, $comment)
     {
@@ -523,6 +531,18 @@
       if ($action == 'Resolve')
       {
         $params .= "&resolution=7&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
+        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
+      }
+
+      return $this->f_issue($issue);
+    }
+
+    function f_duplicate($issue, $comment)
+    {
+      list($action, $params, $dummy) = $this->_getparams($issue, true);
+      if ($action == 'Resolve')
+      {
+        $params .= "&resolution=3&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
@@ -773,8 +793,8 @@ EOS;
             // prepare comment file
             file_put_contents($tmpfile, "\n\n#- Please enter your comments\n#- (Lines starting with '#-' will not be included)\n#-\n");
 
-            // run issue details (no color) into file
-            system(__FILE__ . " issue {$issue} 0 | sed 's/^/#- /;s/[ ]*$//' >> {$tmpfile}");
+            // run issue details (no color, no wrap) into file
+            system(__FILE__ . " raw {$issue} | sed 's/^/#- /;s/[ ]*$//' >> {$tmpfile}");
 
             if (getenv('OSTYPE') == 'cygwin')
             {
