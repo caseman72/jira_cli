@@ -82,6 +82,11 @@
         $html = $this->_wgetit('/browse/' . strtoupper($html));
       }
 
+      $issue = '';
+      if (preg_match("/<a id=\"key-val\"[^>]*>([^<]+)<\/a>/", $html, $parts)) {
+        $issue = $parts[1];
+      }
+
       $search = array(
         "/^.*?<a[^>]*href=\"\/secure\/WorkflowUIDispatcher\.jspa[?]([^\"]*)\"[^>]*>([^<]+) Issue<\/a>.*$/",
         "/[&]atl_token=[^&]*([&]?)/",
@@ -101,10 +106,21 @@
           $params .= '&fixVersions='. $fixVersions;
         }
       }
+      elseif ($concatVersion && $issue) {
+        $project = preg_replace("/-.*$/", '', $issue); // get prefix
+        $versions = $this->_versions($project);        // versions
 
-      $issue = '';
-      if (preg_match("/<a id=\"key-val\"[^>]*>([^<]+)<\/a>/", $html, $parts)) {
-        $issue = $parts[1];
+        $sprint = false;
+        $now = strtotime("now");
+        foreach($versions as $date => $obj) {
+          if ($date < 1300000000 || $date > $now) continue;
+          $sprint = $obj['id'];
+          break;
+        }
+
+        if ($sprint) {
+          $params .= '&fixVersions='. $sprint;
+        }
       }
 
       return array($action, $params, $issue);
@@ -326,11 +342,13 @@
       $json = is_array($json) ? $json : array();
 
       $versions = array();
+      $index = 0;
       foreach($json as $v) {
         $name = trim($v->name);
-        $versions[$name] = array('id' => $v->id, 'name' => $name);
+        $date = strtotime(preg_replace(array("/ .*$/", "/_/"), array('', '-'), $name));
+        $versions[$date ? $date : $index++] = array('id' => $v->id, 'name' => $name, 'date' => $date);
       }
-      ksort($versions);
+      krsort($versions);
 
       return $versions;
     }
@@ -366,7 +384,7 @@
 
       # api doesn't redirect like html - so try url for new issue (and pray!)
       if (!$json) {
-        list($action, $params, $newIssue) = $this->_getparams($issue, true);
+        list($action, $params, $newIssue) = $this->_getparams($issue, false);
         if ($newIssue && $newIssue != $issue) {
           return $this->f_issue($newIssue); // hopefully we don't get stuck in a loop!
         }
@@ -656,7 +674,7 @@
               . '&issuetype='  . '1';  // bug
 
       $html = $this->_wgetit('/secure/CreateIssueDetails.jspa', $params);
-      list($action, $params, $issue) = $this->_getparams($html, true);
+      list($action, $params, $issue) = $this->_getparams($html, false);
 
       return $this->f_issue($issue);
     }
@@ -720,7 +738,7 @@ EOS;
       $comment = null;
 
       $argc = count($argv);
-      switch( $argc )
+      switch($argc)
       {
         case 4:
           $comment = urlencode(preg_replace($search, $replace, $argv[3]));
@@ -742,7 +760,7 @@ EOS;
       // class method from command
       $command = "f_{$command}";
 
-      switch( $argc )
+      switch($argc)
       {
         case 4:
           return $this->{$command}($issue, $comment);
