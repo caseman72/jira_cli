@@ -110,13 +110,23 @@
       return array($action, $params, $issue);
     }
 
-    private function _columns($values)
+    private function _columns($values, $color=true)
     {
       $values = $values ? array_values($values) : array();
       $keys = $values ? join("\t", array_keys($values[0])) : '';
+
       $output = array_map(function($a) { return join("\t", array_values($a)); }, $values); // anonymouse fx ~ cheatin'
-      $output = escapeshellarg("{$this->_colors['BLUE']}\n{$keys}{$this->_colors['RESET']}\n" . join("\n", $output));
-      return `echo $output | column -ts'	' | sed ':a;N;$!ba;s/\\n//'`;
+
+      if ($color) {
+        $output = escapeshellarg("{$this->_colors['BLUE']}\n{$keys}{$this->_colors['RESET']}\n" . join("\n", $output));
+        $output = `echo $output | column -ts'	' | sed ':a;N;$!ba;s/\\n//'`;
+      }
+      else {
+        $output = escapeshellarg("{$keys}\n" . join("\n", $output));
+        $output = `echo $output | column -ts'	'`;
+      }
+
+      return $output;
     }
 
 
@@ -174,8 +184,8 @@
 
       return $users;
     }
-    function f_users() {
-      print $this->_columns($this->_users());
+    function f_users($color=true) {
+      print $this->_columns($this->_users(), $color);
     }
 
 
@@ -216,9 +226,9 @@
 
       return $projectIds;
     }
-    function f_projectIds()
+    function f_projectIds($color=true)
     {
-      print $this->_columns($this->_projectIds());
+      print $this->_columns($this->_projectIds(), $color);
     }
 
 
@@ -290,20 +300,20 @@
 
       return $issues;
     }
-    function f_list()
+    function f_list($color=true)
     {
-      print $this->_columns($this->_list($this->_jira_list));
+      print $this->_columns($this->_list($this->_jira_list), $color);
     }
-    function f_listall()
+    function f_listall($color=true)
     {
-      print $this->_columns($this->_list($this->_jira_list_all));
+      print $this->_columns($this->_list($this->_jira_list_all), $color);
     }
-    function f_triage()
+    function f_triage($color=true)
     {
-      print $this->_columns($this->_list($this->_jira_triage));
+      print $this->_columns($this->_list($this->_jira_triage), $color);
     }
-    function f_jql($jqlQuery) {
-      print $this->_columns($this->_list(false, urlencode($jqlQuery)));
+    function f_jql($jqlQuery, $color=true) {
+      print $this->_columns($this->_list(false, urlencode($jqlQuery)), $color);
     }
     # TODO # ^^ maybe use a mustache template for the previous outputs
 
@@ -343,9 +353,9 @@
 
       return $projects;
     }
-    function f_projects()
+    function f_projects($color=true)
     {
-      print $this->_columns($this->_projects());
+      print $this->_columns($this->_projects(), $color);
     }
 
 
