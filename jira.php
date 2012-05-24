@@ -243,7 +243,7 @@
 
       return $projectIds;
     }
-    function f_projectIds($color=true)
+    function f_projectids($color=true)
     {
       print $this->_columns($this->_projectIds(), $color);
     }
