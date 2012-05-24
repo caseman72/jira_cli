@@ -21,12 +21,14 @@
     private function _tz_local() { return new DateTimeZone(date_default_timezone_get()); }
 
     # full-path to local template
-    private function _local($template) {
+    private function _local($template)
+    {
       return rtrim(dirname(__FILE__), '\/') . "/templates/{$template}.mustache";
     }
 
     # full-path to home template
-    private function _home($template) {
+    private function _home($template)
+    {
       return rtrim(getenv('HOME'), '\/') . "/.jira/templates/{$template}.mustache";
     }
 
@@ -70,6 +72,7 @@
     private function _wgetit($url, $post=false, $json=false)
     {
       $url = $this->_jira_host . $url;
+
       $post = $post ? "--post-data " . escapeshellarg($post) : '';
       $json = $json ? '--header="Content-Type: application/json"' : '';
       $data = `wget -q --header='{$this->_auth_basic}' --header='X-Atlassian-Token: no-check' {$json} --user-agent='{$this->_user_agent}' {$post} '{$url}' -O -`;
@@ -201,7 +204,8 @@
 
       return $users;
     }
-    function f_users($color=true) {
+    function f_users($color=true)
+    {
       print $this->_columns($this->_users(), $color);
     }
 
@@ -243,7 +247,7 @@
 
       return $projectIds;
     }
-    function f_projectIds($color=true)
+    function f_projectids($color=true)
     {
       print $this->_columns($this->_projectIds(), $color);
     }
@@ -333,7 +337,8 @@
     {
       print $this->_columns($this->_list($this->_jira_triage), $color);
     }
-    function f_jql($jqlQuery, $color=true) {
+    function f_jql($jqlQuery, $color=true)
+    {
       print $this->_columns($this->_list(false, urlencode($jqlQuery)), $color);
     }
     # TODO # ^^ maybe use a mustache template for the previous outputs
@@ -343,7 +348,7 @@
     {
       $project = strtoupper($project);
 
-      $json = $this->_wgetit("/rest/api/2.0.alpha1/project/{$project}/versions/", false, true);
+      $json = $this->_wgetit("/rest/api/latest/project/{$project}/versions/", false, true);
       $json = is_array($json) ? $json : array();
 
       $versions = array();
@@ -363,8 +368,9 @@
     }
 
 
-    function _projects() {
-      $json = $this->_wgetit("/rest/api/2.0.alpha1/project/", false, true);
+    function _projects()
+    {
+      $json = $this->_wgetit("/rest/api/latest/project/", false, true);
       $json = is_array($json) ? $json : array();
 
       $projects = array();
@@ -384,9 +390,10 @@
 
     function f_issue($issue, $color=true, $wrap=80)
     {
-      $json = $this->_wgetit('/rest/api/2.0.alpha1/issue/' . $issue, false, true);
+      $json = $this->_wgetit('/rest/api/latest/issue/' . $issue, false, true);
       $json = $json->fields;
 
+      $comments = array();
       # api doesn't redirect like html - so try url for new issue (and pray!)
       if (!$json) {
         list($action, $params, $newIssue) = $this->_getparams($issue, false);
@@ -421,9 +428,8 @@
         $view[$key] = $color ? $val : '';
       }
 
-      $comments = array();
-      if ($json->comment->value) {
-        foreach($json->comment->value as $comment) {
+      if ($json->comment) {
+        foreach($json->comment->comments as $comment) {
           $dt = new DateTime($comment->created, $this->_tz_server());
           $dt->setTimezone($this->_tz_local());
 
@@ -439,21 +445,21 @@
       unset($json->comment);
 
       foreach(get_object_vars($json) as $key => $val) {
-        if (isset($val->value->displayName)) {
-          $view[$key] = $val->value->displayName;
+        if (isset($val->displayName)) {
+          $view[$key] = $val->displayName;
         }
-        elseif (isset($val->value->name)) {
-          $view[$key] = $val->value->name;
+        elseif (isset($val->name)) {
+          $view[$key] = $val->name;
         }
         elseif ($key == 'fixVersions') {
           $versions = array();
-          foreach(($val->value ? $val->value : array()) as $v) {
+          foreach(($val ? $val : array()) as $v) {
             array_push($versions, $v->name);
           }
           $view[$key] = join(',', $versions);
         }
-        elseif (isset($val->value)) {
-          $value = $val->value;
+        elseif (isset($val)) {
+          $value = $val;
           if (is_string($value)) {
             if (preg_match("/^[0-9]{4}[-][0-9]{2}[-][0-9]{2}T/", $value, $dummy)) {
               $dt = new DateTime($value, $this->_tz_server());
@@ -497,7 +503,8 @@
       $m = new Mustache();
       print $m->render($template, $view);
     }
-    function f_raw($issue) {
+    function f_raw($issue)
+    {
       return $this->f_issue($issue, false, 1024);
     }
 
@@ -767,6 +774,7 @@ EOS;
         case 2:
           $command = strtolower($argv[1]);
       }
+
 
       // jira hl-10
       if ($argc == 2) {
