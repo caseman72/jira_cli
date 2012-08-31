@@ -5,6 +5,10 @@
   require_once("{$cwd}/__config.inc");
   require_once("{$cwd}/Mustache.php");
 
+  function tsv ($a) {
+    return join("\t", array_values($a));
+  }
+
   class Jira
   {
     private $_user_agent = USER_AGENT;
@@ -30,6 +34,12 @@
     private function _home($template)
     {
       return rtrim(getenv('HOME'), '\/') . "/.jira/templates/{$template}.mustache";
+    }
+
+    # cookie file
+    private function _cookie()
+    {
+      return rtrim(dirname(__FILE__), '\/') . '/.jira.cookies';
     }
 
     private $_colors = array(
@@ -69,13 +79,26 @@
       , '"'
     );
 
+    private function _logon() {
+      $file = $this->_cookie();
+
+      $url = $this->_jira_host . '/secure/Dashboard.jspa';
+      $data = `wget -q --keep-session-cookies --save-cookies='{$file}' --header='{$this->_auth_basic}' --header='X-Atlassian-Token: no-check' --user-agent='{$this->_user_agent}' '{$url}' -O -`;
+
+      // TODO check for bad login ...
+      // $data = preg_replace($this->_search, $this->_replace, $data);
+
+      return true;
+    }
+
     private function _wgetit($url, $post=false, $json=false)
     {
       $url = $this->_jira_host . $url;
 
-      $post = $post ? "--post-data " . escapeshellarg($post) : '';
-      $json = $json ? '--header="Content-Type: application/json"' : '';
-      $data = `wget -q --header='{$this->_auth_basic}' --header='X-Atlassian-Token: no-check' {$json} --user-agent='{$this->_user_agent}' {$post} '{$url}' -O -`;
+      $file = $this->_cookie();
+      $post = $post ? " --post-data " . escapeshellarg($post) : '';
+      $json = $json ? ' --header="Content-Type: application/json"' : '';
+      $data = `wget -q --load-cookies='{$file}' --header='{$this->_auth_basic}' --header='X-Atlassian-Token: no-check'{$json} --user-agent='{$this->_user_agent}'{$post} '{$url}' -O -`;
 
       return $json ? json_decode($data) : preg_replace($this->_search, $this->_replace, $data);
     }
@@ -93,11 +116,11 @@
 
       $search = array(
         "/^.*?<a[^>]*href=\"\/secure\/WorkflowUIDispatcher\.jspa[?]([^\"]*)\"[^>]*>([^<]+) Issue<\/a>.*$/",
-        "/[&]atl_token=[^&]*([&]?)/",
+        "/[&]atl_token=[^&]*([&]?)/"
       );
       $replace = array(
-        "$2\t$1"
-        , "$1" // removes atl_token
+        "$2\t$1",
+        "$1" // removes atl_token
       );
 
       $params = preg_replace($search, $replace, $html);
@@ -135,7 +158,7 @@
       $values = $values ? array_values($values) : array();
       $keys = $values ? join("\t", array_keys($values[0])) : '';
 
-      $output = array_map(function($a) { return join("\t", array_values($a)); }, $values); // anonymouse fx ~ cheatin'
+      $output = array_map("tsv", $values); // anonymouse fx ~ cheatin'
 
       if ($color) {
         $output = escapeshellarg("{$this->_colors['BLUE']}\n{$keys}{$this->_colors['RESET']}\n" . join("\n", $output));
@@ -271,6 +294,7 @@
         , "/<tr[^>]*>/"
         , "/^\t+|&nbsp;$/m"
         , "/\t+/"
+        , "/Feature Enhancement/"
       );
       $replace = array(
         ''
@@ -283,6 +307,7 @@
         , "\n"
         , ''
         , "\t"
+        , "Feature"
       );
 
       $html = $jqlQuery
@@ -749,6 +774,9 @@ EOS;
 
     function __construct($argv)
     {
+      // have to logon
+      $this->_logon();
+
       $search = array(
         "/\\\\n/"
         , "/\\\\\\\/"
