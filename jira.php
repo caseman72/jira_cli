@@ -5,6 +5,10 @@
   require_once("{$cwd}/__config.inc");
   require_once("{$cwd}/Mustache.php");
 
+  function tsv ($a) {
+    return join("\t", array_values($a));
+  }
+
   class Jira
   {
     private $_user_agent = USER_AGENT;
@@ -132,7 +136,7 @@
       $values = $values ? array_values($values) : array();
       $keys = $values ? join("\t", array_keys($values[0])) : '';
 
-      $output = array_map(function($a) { return join("\t", array_values($a)); }, $values); // anonymouse fx ~ cheatin'
+      $output = array_map("tsv", $values);
 
       if ($color) {
         $output = escapeshellarg("{$this->_colors['BLUE']}\n{$keys}{$this->_colors['RESET']}\n" . join("\n", $output));
@@ -414,7 +418,8 @@
       );
 
       $view = array(
-        'issue' => $issue
+        'host' => $this->_jira_host
+        , 'issue' => $issue
         , 'wrap' => $wrap
       );
       foreach($this->_colors as $key => $val) {
