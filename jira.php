@@ -446,7 +446,8 @@
       );
 
       $view = array(
-        'issue' => $issue
+        'host' => $this->_jira_host
+        , 'issue' => $issue
         , 'wrap' => $wrap
       );
       foreach($this->_colors as $key => $val) {
