@@ -1,2 +1,4 @@
 __config.inc
 .rcs
+*.swp
+.jira.cookies
