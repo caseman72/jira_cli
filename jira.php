@@ -551,7 +551,7 @@
       list($action, $params, $dummy) = $this->_getparams($issue, true);
       if ($action == 'Resolve')
       {
-        $params .= "&resolution=2&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
+        $params .= "&resolution=8&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
@@ -563,7 +563,7 @@
       list($action, $params, $dummy) = $this->_getparams($issue, true);
       if ($action == 'Resolve')
       {
-        $params .= "&resolution=7&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
+        $params .= "&resolution=10&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
@@ -587,7 +587,7 @@
       list($action, $params, $dummy) = $this->_getparams($issue, true);
       if ($action == 'Resolve')
       {
-        $params .= "&resolution=8&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
+        $params .= "&resolution=6&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
       }
 
