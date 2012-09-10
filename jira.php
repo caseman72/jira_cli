@@ -21,6 +21,22 @@
     private $_jira_phoenix = JIRA_PHOENIX;
     private $_jira_triage = JIRA_TRIAGE;
 
+    // date convertions
+    private $_month_to_index = array(
+      'Jan' => 1,
+      'Feb' => 2,
+      'Mar' => 3,
+      'Apr' => 4,
+      'May' => 5,
+      'Jun' => 6,
+      'Jul' => 7,
+      'Aug' => 8,
+      'Sep' => 9,
+      'Oct' => 10,
+      'Nov' => 11,
+      'Dec' => 12,
+    );
+
     private function _tz_server() { return new DateTimeZone('GMT'); }
     private function _tz_local() { return new DateTimeZone(date_default_timezone_get()); }
 
@@ -109,30 +125,46 @@
         $html = $this->_wgetit('/browse/' . strtoupper($html));
       }
 
+      // find issue
       $issue = '';
       if (preg_match("/<a id=\"key-val\"[^>]*>([^<]+)<\/a>/", $html, $parts)) {
         $issue = $parts[1];
       }
 
+      // find params
       $search = array(
-        "/^.*?<a[^>]*href=\"\/secure\/WorkflowUIDispatcher\.jspa[?]([^\"]*)\"[^>]*>([^<]+) Issue<\/a>.*$/",
-        "/[&]atl_token=[^&]*([&]?)/"
+        "/^.*?<a[^>]*href=\"\/secure\/AssignIssue\.jspa[?]([^\"]*)\"[^>]*>Assign To Me<\/a>.*$/",
+        "/[&]assignee=[^&]*([&]?)/",
+        "/^assignee=[^&]*[&]?/",
+        "/[&]atl_token=[^&]*([&]?)/",
+        "/^atl_token=[^&]*[&]?/"
       );
       $replace = array(
-        "$2\t$1",
-        "$1" // removes atl_token
+        "$1",
+        "$1",  // removes assignee
+        '',    // removes assignee
+        "$1",  // removes atl_token
+        ''     // removes atl_token
       );
-
       $params = preg_replace($search, $replace, $html);
-      list($action, $params) = explode("\t", $params);
 
-      if (preg_match_all("/<a href=\"\/browse\/[^\/]+\/fixforversion\/([0-9]+)\"[^>]*>.*?<\/a>/", $html, $versions)) {
+      // find state
+      if (preg_match("/<span[^>]*id=\"status-val\"[^>]*>(?:<img[^>]*>)(.*?)<\/span>/", $html, $state)) {
+        $state = trim($state[1]);
+      }
+      else {
+        $state = 'Comment';
+      }
+
+      // find fixforversion
+      if (preg_match_all("/<a href=\"\/browse\/[^\/]+\/fixforversion\/([0-9]+)\"[^>]*>(.*?)<\/a>/", $html, $versions)) {
         $fixVersions = join($versions[1], '&fixVersions=');
 
         if ($concatVersion) {
           $params .= '&fixVersions='. $fixVersions;
         }
       }
+
       elseif ($concatVersion && $issue) {
         $project = preg_replace("/-.*$/", '', $issue); // get prefix
         $versions = $this->_versions($project);        // versions
@@ -150,7 +182,7 @@
         }
       }
 
-      return array($action, $params, $issue);
+      return array($state, $params, $issue);
     }
 
     private function _columns($values, $color=true)
@@ -376,12 +408,22 @@
       $json = $this->_wgetit("/rest/api/latest/project/{$project}/versions/", false, true);
       $json = is_array($json) ? $json : array();
 
+      print_r($json);
+
       $versions = array();
       $index = 0;
       foreach($json as $v) {
         $name = trim($v->name);
-        $date = strtotime(preg_replace(array("/ .*$/", "/_/"), array('', '-'), $name));
-        $versions[$date ? $date : $index++] = array('id' => $v->id, 'name' => $name, 'date' => $date);
+
+        $release_date = $user_release_date = strtotime($v->releaseDate);
+        if(preg_match("^/([0-9]{2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-([0-9]{2})/", $v->userReleaseDate, $parts)) {
+          $user_release_date = mktime(0, 0, 0, $parts[3], $this->_month_to_index($parts[2]), $parts[1]);
+        }
+        $date_by_name = strtotime(preg_replace(array("/ .*$/", "/_/"), array('', '-'), $name));
+
+        $date = max($release_date, $user_release_date, $date_by_name);
+
+        $versions[$date ? $date : $index++] = array('id' => $v->id, 'name' => $name, 'date' => date("Y-m-d", $date));
       }
       krsort($versions);
 
@@ -421,7 +463,7 @@
       $comments = array();
       # api doesn't redirect like html - so try url for new issue (and pray!)
       if (!$json) {
-        list($action, $params, $newIssue) = $this->_getparams($issue, false);
+        list($state, $params, $newIssue) = $this->_getparams($issue, false);
         if ($newIssue && $newIssue != $issue) {
           return $this->f_issue($newIssue); // hopefully we don't get stuck in a loop!
         }
@@ -536,8 +578,8 @@
 
     function f_fix($issue, $comment)
     {
-      list($action, $params, $dummy) = $this->_getparams($issue, true);
-      if ($action == 'Resolve')
+      list($state, $params, $dummy) = $this->_getparams($issue, true);
+      if ($state == 'Open' || $state =='Reopened')
       {
         $params .= "&resolution=1&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
@@ -548,8 +590,8 @@
 
     function f_wontfix($issue, $comment)
     {
-      list($action, $params, $dummy) = $this->_getparams($issue, true);
-      if ($action == 'Resolve')
+      list($state, $params, $dummy) = $this->_getparams($issue, true);
+      if ($state == 'Open' || $state =='Reopened')
       {
         $params .= "&resolution=8&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
@@ -558,22 +600,10 @@
       return $this->f_issue($issue);
     }
 
-    function f_defer($issue)
-    {
-      list($action, $params, $dummy) = $this->_getparams($issue, true);
-      if ($action == 'Resolve')
-      {
-        $params .= "&resolution=10&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
-      }
-
-      return $this->f_issue($issue);
-    }
-
     function f_duplicate($issue, $comment)
     {
-      list($action, $params, $dummy) = $this->_getparams($issue, true);
-      if ($action == 'Resolve')
+      list($state, $params, $dummy) = $this->_getparams($issue, true);
+      if ($state == 'Open' || $state =='Reopened')
       {
         $params .= "&resolution=3&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
@@ -584,8 +614,8 @@
 
     function f_notabug($issue)
     {
-      list($action, $params, $dummy) = $this->_getparams($issue, true);
-      if ($action == 'Resolve')
+      list($state, $params, $dummy) = $this->_getparams($issue, true);
+      if ($state == 'Open' || $state =='Reopened')
       {
         $params .= "&resolution=6&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
         $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
@@ -594,14 +624,13 @@
       return $this->f_issue($issue);
     }
 
-    function f_reopen($issue, $comment)
+    function f_comment($issue, $comment)
     {
-      list($action, $params, $dummy) = $this->_getparams($issue, true);
-      if ($action == 'Reopen' || $action == 'Close')
+      list($state, $params, $dummy) = $this->_getparams($issue, false);
+      if ($state)
       {
-        $params = preg_replace("/([?&]action)=[0-9]+/", "$1=3", $params);
-        $params .= "&assignee={$this->_jira_user}&comment={$comment}&commentLevel=&viewIssueKey=";
-        $this->_wgetit('/secure/CommentAssignIssue.jspa', $params);
+        $params .= "&comment={$comment}&commentLevel=";
+        $this->_wgetit('/secure/AddComment.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -612,8 +641,8 @@
       $commentId = intval($commentId);
       if ($commentId)
       {
-        list($action, $params, $dummy) = $this->_getparams($issue, false);
-        if ($action)
+        list($state, $params, $dummy) = $this->_getparams($issue, false);
+        if ($state)
         {
           $params .= "&commentId={$commentId}";
           $this->_wgetit('/secure/DeleteComment.jspa', $params);
@@ -622,66 +651,15 @@
       return $this->f_issue($issue);
     }
 
-    function f_comment($issue, $comment)
-    {
-      list($action, $params, $dummy) = $this->_getparams($issue, false);
-      if ($action)
-      {
-        $params .= "&comment={$comment}&commentLevel=";
-        $this->_wgetit('/secure/AddComment.jspa', $params);
-      }
-
-      return $this->f_issue($issue);
-    }
-
     function f_assign($issue, $user)
     {
-      list($action, $params, $dummy) = $this->_getparams($issue, false);
-      if ($action == 'Resolve')
+      list($state, $params, $dummy) = $this->_getparams($issue, false);
+      if ($state)
       {
         $user = urlencode($user); # TODO # verify
 
         $params .= "&assignee={$user}&comment=&commentLevel=";
         $this->_wgetit('/secure/AssignIssue.jspa', $params);
-      }
-
-      return $this->f_issue($issue);
-    }
-
-    function f_priority($issue, $value)
-    {
-      list($action, $params, $dummy) = $this->_getparams($issue, false);
-      if ($action == 'Resolve')
-      {
-        $params = preg_replace("/[&]action=\d+/", '', $params);
-        $params .= '&priority='. urlencode($value);
-
-        // good start but doesn't work...
-        $this->_wgetit('/secure/EditIssue.jspa', $params);
-      }
-
-      return $this->f_issue($issue);
-    }
-
-    function f_start($issue)
-    {
-      list($action, $params, $dummy) = $this->_getparams($issue, false);
-      if ($action == 'Resolve')
-      {
-        $params = preg_replace("/([?&]action)=[0-9]+/", "$1=4", $params);
-        $this->_wgetit('/secure/WorkflowUIDispatcher.jspa', $params);
-      }
-
-      return $this->f_issue($issue);
-    }
-
-    function f_stop($issue)
-    {
-      list($action, $params, $dummy) = $this->_getparams($issue, false);
-      if ($action == 'Resolve')
-      {
-        $params = preg_replace("/([?&]action)=[0-9]+/", "$1=301", $params);
-        $this->_wgetit('/secure/WorkflowUIDispatcher.jspa', $params);
       }
 
       return $this->f_issue($issue);
@@ -727,7 +705,7 @@
               . '&issuetype='  . '1';  // bug
 
       $html = $this->_wgetit('/secure/CreateIssueDetails.jspa', $params);
-      list($action, $params, $issue) = $this->_getparams($html, false);
+      list($state, $params, $issue) = $this->_getparams($html, false);
 
       return $this->f_issue($issue);
     }
@@ -754,7 +732,6 @@ COMMANDS
     comment id comment
     delete id commentId  (remove comment)
     wontfix id comment
-    defer id comment
     assign id user
     start id
     stop id
@@ -823,7 +800,7 @@ EOS;
           return $this->{$command}($issue, $comment);
 
         case 3:
-          if (in_array($command, array('f_fix', 'f_wontfix', 'f_defer', 'f_notabug', 'f_reopen', 'f_comment', 'f_new')))
+          if (in_array($command, array('f_fix', 'f_wontfix', 'f_notabug', 'f_reopen', 'f_comment', 'f_new')))
           {
             $tmpfile = tempnam("/tmp", "{$this->_jira_user}_") . '.txt';
 
