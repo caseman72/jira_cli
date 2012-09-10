@@ -408,8 +408,6 @@
       $json = $this->_wgetit("/rest/api/latest/project/{$project}/versions/", false, true);
       $json = is_array($json) ? $json : array();
 
-      print_r($json);
-
       $versions = array();
       $index = 0;
       foreach($json as $v) {
@@ -423,7 +421,7 @@
 
         $date = max($release_date, $user_release_date, $date_by_name);
 
-        $versions[$date ? $date : $index++] = array('id' => $v->id, 'name' => $name, 'date' => date("Y-m-d", $date));
+        $versions[$date ? $date : $index++] = array('id' => $v->id, 'name' => $name, 'date' => date('Y-m-d', $date));
       }
       krsort($versions);
 
@@ -437,7 +435,7 @@
 
     function _projects()
     {
-      $json = $this->_wgetit("/rest/api/latest/project/", false, true);
+      $json = $this->_wgetit('/rest/api/latest/project/', false, true);
       $json = is_array($json) ? $json : array();
 
       $projects = array();
@@ -802,7 +800,7 @@ EOS;
         case 3:
           if (in_array($command, array('f_fix', 'f_wontfix', 'f_notabug', 'f_reopen', 'f_comment', 'f_new')))
           {
-            $tmpfile = tempnam("/tmp", "{$this->_jira_user}_") . '.txt';
+            $tmpfile = tempnam('/tmp', "{$this->_jira_user}_") . '.txt';
 
             // prepare comment file
             file_put_contents($tmpfile, "\n\n#- Please enter your comments\n#- (Lines starting with '#-' will not be included)\n#-\n");
