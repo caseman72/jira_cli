@@ -487,6 +487,7 @@
 
       $view = array(
         'host' => $this->_jira_host
+        , 'short_host' => preg_replace("/([^\.]+)\.[^.]+\.[^.]+$/", "$1", $this->_jira_host)
         , 'issue' => $issue
         , 'wrap' => $wrap
       );
@@ -806,7 +807,7 @@ EOS;
             file_put_contents($tmpfile, "\n\n#- Please enter your comments\n#- (Lines starting with '#-' will not be included)\n#-\n");
 
             // run issue details (no color, no wrap) into file
-            system(__FILE__ . " raw {$issue} | sed 's/^/#- /;s/[ ]*$//' >> {$tmpfile}");
+            system('/usr/bin/php ' . __FILE__ . " raw {$issue} | sed 's/^/#- /;s/[ ]*$//' >> {$tmpfile}");
 
             if (getenv('OSTYPE') == 'cygwin')
             {
