@@ -328,6 +328,7 @@
         , "/\t+/"
         , "/Feature Enhancement/"
         , "/aggregatetimeoriginalestimate/"
+        , "/fixVersions/"
       );
       $replace = array(
         ''
@@ -340,8 +341,9 @@
         , "\n"
         , ''
         , "\t"
-        , "Feature"
-        , "Est"
+        , 'Feature'
+        , 'est'
+        , 'version'
       );
 
       $html = $jqlQuery
