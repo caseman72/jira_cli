@@ -6,7 +6,7 @@
   require_once("{$cwd}/Mustache.php");
 
   function tsv ($a) {
-    return join("\t", array_values($a));
+    return str_replace('&nbsp;', '-', join("\t", array_values($a)));
   }
 
   class Jira
@@ -245,7 +245,7 @@
         foreach($matches as $m) {
           list($dummy, $user, $name, $email, $count, $last) = $m;
 
-          $last = str_replace("/", "-", trim($last));
+          $last = str_replace('/', '-', trim($last));
           if ($last) {
             $dt = new DateTime($last, $this->_tz_local());
             $last = $dt->format('Y-m-d h:i A');
@@ -327,6 +327,7 @@
         , "/^\t+|&nbsp;$/m"
         , "/\t+/"
         , "/Feature Enhancement/"
+        , "/aggregatetimeoriginalestimate/"
       );
       $replace = array(
         ''
@@ -340,6 +341,7 @@
         , ''
         , "\t"
         , "Feature"
+        , "Est"
       );
 
       $html = $jqlQuery
@@ -400,7 +402,6 @@
     }
     # TODO # ^^ maybe use a mustache template for the previous outputs
 
-
     function _versions($project)
     {
       $project = strtoupper($project);
@@ -432,7 +433,6 @@
       print $this->_columns($this->_versions($project));
     }
 
-
     function _projects()
     {
       $json = $this->_wgetit('/rest/api/latest/project/', false, true);
@@ -451,7 +451,6 @@
     {
       print $this->_columns($this->_projects(), $color);
     }
-
 
     function f_issue($issue, $color=true, $wrap=80)
     {
@@ -709,7 +708,6 @@
       return $this->f_issue($issue);
     }
 
-
     function f_help()
     {
       echo <<<EOS
@@ -779,7 +777,6 @@ EOS;
         case 2:
           $command = strtolower($argv[1]);
       }
-
 
       // jira hl-10
       if ($argc == 2) {
