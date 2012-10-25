@@ -329,6 +329,7 @@
         , "/Feature Enhancement/"
         , "/aggregatetimeoriginalestimate/"
         , "/fixVersions/"
+        , "/ \- Functionality \-/"
       );
       $replace = array(
         ''
@@ -344,6 +345,7 @@
         , 'Feature'
         , 'est'
         , 'version'
+        , ''
       );
 
       $html = $jqlQuery
@@ -365,8 +367,8 @@
               $dt = new DateTime($val, $this->_tz_local());
               $val = $dt->format('Y-m-d h:i A');
             }
-
             elseif ($key == 'summary') {
+              $val = preg_replace("/^RE \- /", '', $val);
               if (strlen($val) > 63 ) {
                 $val = substr($val, 0, 63) . ' ...';
               }
