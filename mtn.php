@@ -38,22 +38,26 @@ $color = array(
 	, 'RESET'   => "\033[39m"
 );
 
+# retrieve from website - mt. bachelor report - as JSON
 $json = `wget -q "http://forecast.weather.gov/MapClick.php?lat=43.98886243884903&lon=-121.68182373046875&site=pdt&smap=1&unit=0&lg=en&FcstType=json" -O -`;
 $obj = json_decode($json);
+
+# descriptions
 $data = array_get('data', $obj, array());
 $text = array_get('text', $data, array());
 
+# days of the week
 $time = array_get('time', $obj, array());
 $days = array_get('startPeriodName', $time, array());
-
 $n = count($days);
+
+# output
 for($i=0; $i<$n; $i++) {
 	print "{$color['BLUE']}{$days[$i]}{$color['RESET']}\n";
 
-	$desc = wordwrap($text[$i], 72);
+	$desc = trim($text[$i]);
 	$desc = preg_replace("/\.\s*/", ". ", $desc);
+	$desc = wordwrap($desc, 72);
 	$desc = preg_replace("/([Ss]now)/", $color['RED'] . "$1" . $color['RESET'], $desc);
-
 	print "{$desc}\n\n"; 
 }
-
