@@ -2,9 +2,9 @@
 <?php
 
 /**
-* array_get value from array/object/et
+* array_get value from array/object/ete
 *
-* @param $neelde
+* @param $needle
 * @param $haystack
 * @param $default
 */
@@ -51,9 +51,9 @@ if (preg_match_all("/<th>([^<]* Snowfall)<\/th>.*?<td>([^<]+)<\/td>/s", $html, $
 	$values = $conditions[2];
 
 	# output
-	print "{$color['BLACK']}http://www.mtbachelor.com/winter/mountain/snow_report/@@conditions.flyer.html{$color['RESET']}\n";
+	echo $color['BLACK'], 'http://www.mtbachelor.com/winter/mountain/snow_report/@@conditions.flyer.html', $color['RESET'], "\n";
 	for($i=0; $i<$n; $i++) {
-		print "  {$headings[$i]} - {$color['RED']}{$values[$i]}{$color['RESET']}\n";
+		echo '  ', trim($headings[$i]), ' - ', $color['RED'], trim($values[$i]), $color['RESET'], "\n";
 	}
 }
 
@@ -62,24 +62,24 @@ $json = `wget -q "http://forecast.weather.gov/MapClick.php?lat=43.98886243884903
 $obj = json_decode($json);
 
 # descriptions
-$data = array_get('data', $obj, array());
-$text = array_get('text', $data, array());
+$key_text = 'text';
+$text = array_get($key_text, array_get('data', $obj, array()), array());
 
 # days of the week
-$time = array_get('time', $obj, array());
-$days = array_get('startPeriodName', $time, array());
+$key_days = 'startPeriodName';
+$days = array_get($key_days, array_get('time', $obj, array()), array());
 $n = count($days);
 
 # output
-print "\n\n{$color['BLACK']}http://forecast.weather.gov/MapClick.php?lat=43.98886243884903&lon=-121.68182373046875{$color['RESET']}\n\n";
+echo "\n\n", $color['BLACK'], 'http://forecast.weather.gov/MapClick.php?lat=43.98886243884903&lon=-121.68182373046875', $color['RESET'], "\n\n";
 for($i=0; $i<$n; $i++) {
-	print "{$color['BLUE']}{$days[$i]}{$color['RESET']}\n";
+	echo $color['BLUE'], trim($days[$i]), $color['RESET'], "\n";
 
 	$desc = trim($text[$i]);
 	$desc = preg_replace("/\.\s*/", ". ", $desc);
 	$desc = wordwrap($desc, 72);
 	$desc = preg_replace("/([Ss]now)/", $color['RED'] ."$1". $color['RESET'], $desc);
 	$desc = preg_replace("/\n/", "\n  ", $desc);
-	print "  {$desc}\n\n"; 
+	echo '  ', $desc, "\n\n"; 
 }
 
