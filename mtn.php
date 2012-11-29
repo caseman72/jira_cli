@@ -71,7 +71,7 @@ $days = array_get($key_days, array_get('time', $obj, array()), array());
 $n = count($days);
 
 # output
-echo "\n\n", $color['BLACK'], 'http://forecast.weather.gov/MapClick.php?lat=43.98886243884903&lon=-121.68182373046875', $color['RESET'], "\n\n";
+echo "\n", $color['BLACK'], 'http://forecast.weather.gov/MapClick.php?lat=43.98886243884903&lon=-121.68182373046875', $color['RESET'], "\n";
 for($i=0; $i<$n; $i++) {
 	echo $color['BLUE'], trim($days[$i]), $color['RESET'], "\n";
 
