@@ -638,6 +638,19 @@
       return $this->f_issue($issue);
     }
 
+    function f_log($issue, $time)
+    {
+      list($state, $params, $dummy) = $this->_getparams($issue, false);
+      if ($state)
+      {
+        $date = urlencode(date('j/M/y g:i A'));
+        $params .= "inline=true&decorator=dialog&worklogId=&timeLogged={$time}&startDate={$date}&adjustEstimate=auto&comment=&commentLevel=";
+        $this->_wgetit('/secure/CreateWorklog.jspa', $params);
+      }
+
+      return $this->f_issue($issue);
+    }
+
     function f_delete($issue, $commentId)
     {
       $commentId = intval($commentId);
@@ -730,6 +743,7 @@ COMMANDS
     triage
     project-id           (ex. HL-123)
     fix id comment
+    log id time          (ex. jira HL-123 1h)
     comment id comment
     delete id commentId  (remove comment)
     wontfix id comment
