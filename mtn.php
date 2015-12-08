@@ -41,6 +41,9 @@ $color = array(
 
 $html = `wget -q "http://www.mtbachelor.com/site/plan/info/winterconditions" -O -`;
 $html = preg_replace("/ [&] /", " &amp; ", $html);
+$html = preg_replace("/<svg.*?<\/svg>/s", '', $html);
+$html = preg_replace("/(<\/?)(?:header|footer|nav|section)/", '$1div', $html);
+$html = preg_replace("/href=\"([^\"]*)\"/e", '\'href="\' . preg_replace("/[&]/", "&amp;", "$1") . \'"\'' , $html);
 
 $dom = new DomDocument();
 $dom->loadHTML($html);
@@ -102,7 +105,7 @@ $n = count($days);
 
 # output
 echo "\n", $color['BLACK'], 'http://forecast.weather.gov/MapClick.php?lat=43.98886243884903&lon=-121.68182373046875', $color['RESET'], "\n";
-for($i=0; $i<$n && $i<5; $i++) {
+for($i=0; $i<$n; $i++) {
 	echo $color['BLUE'], trim($days[$i]), $color['RESET'], "\n";
 
 	$desc = trim($text[$i]);
